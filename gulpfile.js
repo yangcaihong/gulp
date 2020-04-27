@@ -55,22 +55,29 @@ const config = {
 	release: false, // 是否发布模式
 	cdn: 'http://cdn.sydney710.cn/joke/'
 };
-
 /**
  * 清空文件
  */
-const clean = () => {
-	return del(config.dist, {
+const clean = () =>{
+	return del([config.dist, config.src+'/css/*.css', '!'+config.src+'/css/base.css'], {
 		force: true
-	});
+	})
+};
+/**
+ * sass 编译
+ */
+const scss = () => {
+	return src(config.src+'/scss/*.scss')
+	.pipe(sass())
+	.pipe(dest(config.src+'/css'))
+	.pipe(browserSync.reload({stream: true}))
 };
 /**
  * css处理
- * scss 编译 & 添加前缀 & 添加版本号 & 添加cdn前缀 & 压缩
+ * 添加前缀 & 添加版本号 & 添加cdn前缀 & 压缩
  */
 const css = () => {
-	return src(config.src+'/**/*.{scss,css}')
-	.pipe(sass())
+	return src(config.src+'/**/*.css')
 	.pipe(autoprefixer())
 	.pipe(gulpIf(config.release, assetRev()))
 	.pipe(gulpIf(
@@ -149,7 +156,8 @@ const other = () => {
  */
 const watchFile = () => {
 	watch(config.src + "/**/*.js", js);
-	watch(config.src + "/**/*.{scss,css}", css);
+	watch(config.src + "/**/*.scss", scss);
+	watch(config.src + "/**/*.css", css);
 	watch(config.src + "/**/*.{jpg,png,jpeg,ico,bmp,svg}", img);
 	watch(config.src + "/**/*.html", html);
 };
@@ -171,14 +179,14 @@ exports.default = () => {
 	config.dist = 'live';
 	config.release = false;
 	config.shouldUglify = false;
-	series(clean, parallel(css, js, img), html, other, serve)();
+	series(clean, scss, parallel(css, js, img), html, other, serve)();
 	return Promise.resolve(true)
 };
 
 exports.build = () => {
 	config.release = true;
 	config.shouldUglify = true;
-	series(clean, parallel(css, js, img), html, other)();
+	series(clean, scss, parallel(css, js, img), html, other)();
 	return Promise.resolve(true)
 };
 
